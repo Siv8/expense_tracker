@@ -77,10 +77,10 @@ class Chart extends StatelessWidget {
                   child: Icon(
                     categoryIcons[bucket.category],
                     color: isDarkMode
-                        ? Theme.of(context).colorScheme.secondary
+                        ? Theme.of(context).colorScheme.secondaryContainer.withRed(255)
                         : Theme.of(context)
                         .colorScheme
-                        .primary
+                        .secondaryContainer
                         ,
                   ),
                 ),

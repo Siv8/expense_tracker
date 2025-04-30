@@ -18,7 +18,7 @@ void main() {
       darkTheme: ThemeData.dark().copyWith(
         colorScheme: kDarkColorScheme,
       cardTheme: CardTheme().copyWith(
-        color:kDarkColorScheme.secondaryContainer,
+        color:kDarkColorScheme.secondaryContainer.withRed(255),
         margin: EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 8,
