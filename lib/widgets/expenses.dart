@@ -3,6 +3,8 @@ import 'package:expense/models/expense.dart';
 import 'package:expense/widgets/new_expense.dart';
 import 'package:flutter/material.dart';
 import 'package:expense/widgets/chart/chart.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class Expenses extends StatefulWidget {
   const Expenses({super.key});
@@ -14,7 +16,38 @@ class Expenses extends StatefulWidget {
 }
 
 class _ExpensesState extends State<Expenses> {
-  final List<Expense> _registeredExpenses = [];
+  // FIXED: Removed "final" to allow reassignment after loading
+  List<Expense> _registeredExpenses = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadExpenses(); // Load saved data on start
+  }
+
+  void _saveExpenses() async {
+    final prefs = await SharedPreferences.getInstance();
+    final expenseList = _registeredExpenses.map((e) => e.toJson()).toList();
+    final jsonString = jsonEncode(expenseList);
+    await prefs.setString('expenses', jsonString);
+  }
+
+ void _loadExpenses() async {
+  final prefs = await SharedPreferences.getInstance();
+  final data = prefs.getString('expenses');
+
+
+  if (data != null && _registeredExpenses.isEmpty) {
+    final List decoded = jsonDecode(data);
+    final loadedExpenses =
+        decoded.map((item) => Expense.fromJson(item)).toList();
+
+    setState(() {
+      _registeredExpenses = loadedExpenses;
+    });
+
+  }
+}
 
   void _openAddExpenseOverlay() {
     showModalBottomSheet(
@@ -25,17 +58,20 @@ class _ExpensesState extends State<Expenses> {
     );
   }
 
-  void _addExpense(Expense expense) {
-    setState(() {
-      _registeredExpenses.add(expense);
-    });
-  }
+void _addExpense(Expense expense) {
+  setState(() {
+    _registeredExpenses.add(expense);
+  });
+  _saveExpenses(); // Make sure this is called ONCE
+}
 
   void _removeExpense(Expense expense) {
     final expenseIndex = _registeredExpenses.indexOf(expense);
     setState(() {
       _registeredExpenses.remove(expense);
     });
+    _saveExpenses(); // Save after removing
+
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -47,6 +83,7 @@ class _ExpensesState extends State<Expenses> {
             setState(() {
               _registeredExpenses.insert(expenseIndex, expense);
             });
+            _saveExpenses(); // Save after undo
           },
         ),
       ),
@@ -77,22 +114,21 @@ class _ExpensesState extends State<Expenses> {
           ),
         ],
       ),
-      body:
-          width < 600
-              ? Column(
-                children: [
-                  Chart(expenses: _registeredExpenses),
-                  Expanded(child: mainContent),
-                ],
-              )
-              : Row(
-                children: [
-                  Expanded(child:
-                   Chart(expenses: _registeredExpenses),
-                   ),
-                   Expanded(child: mainContent),
-                ],
-              ),
+      body: width < 600
+          ? Column(
+              children: [
+                Chart(expenses: _registeredExpenses),
+                Expanded(child: mainContent),
+              ],
+            )
+          : Row(
+              children: [
+                Expanded(
+                  child: Chart(expenses: _registeredExpenses),
+                ),
+                Expanded(child: mainContent),
+              ],
+            ),
     );
   }
 }

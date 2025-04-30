@@ -38,71 +38,79 @@ class _NewExpenseState extends State<NewExpense> {
   }
 
   void _submitExpenseData() async {
-    final enteredAmount = double.tryParse(_amountController.text);
-    final amountIsInvalid = enteredAmount == null || enteredAmount <= 0;
+  final enteredAmount = double.tryParse(_amountController.text);
+  final amountIsInvalid = enteredAmount == null || enteredAmount <= 0;
 
-    List<String> errors = [];
+  List<String> errors = [];
 
-    if (_titleController.text.trim().isEmpty) {
-      errors.add('Title is missing.');
-    }
-    if (amountIsInvalid) {
-      errors.add('Amount must be a number greater than 0.');
-    }
-    if (_selectedDate == null) {
-      errors.add('Date was not selected.');
-    }
+  if (_titleController.text.trim().isEmpty) {
+    errors.add('Title is missing.');
+  }
+  if (amountIsInvalid) {
+    errors.add('Amount must be a number greater than 0.');
+  }
+  if (_selectedDate == null) {
+    errors.add('Date was not selected.');
+  }
 
-    if (errors.isNotEmpty) {
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Row(
-            children: [
-              Icon(Icons.arrow_downward),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Invalid input\nSee what is invalid below',
-                  style: TextStyle(fontSize: 16),
-                ),
-              )
-            ],
-          ),
-          content: Text(errors.join('\n')),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-              },
-              child: const Text('OK'),
-            ),
+  if (errors.isNotEmpty) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.arrow_downward),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Invalid input\nSee what is invalid below',
+                style: TextStyle(fontSize: 16),
+              ),
+            )
           ],
         ),
-      );
-      return;
-    }
-
-    final newExpense = Expense(
-      title: _titleController.text,
-      amount: enteredAmount!,
-      date: _selectedDate!,
-      category: _selectedCategory,
+        content: Text(errors.join('\n')),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
     );
+    return;
+  }
 
-    widget.onAddExpense(newExpense);
+  final newExpense = Expense(
+    title: _titleController.text,
+    amount: enteredAmount!,
+    date: _selectedDate!,
+    category: _selectedCategory,
+  );
 
-    // Save to shared_preferences
-    final prefs = await SharedPreferences.getInstance();
-    final savedData = prefs.getString('expenses');
-    List<dynamic> expenseList = savedData != null ? jsonDecode(savedData) : [];
+  // Pass the new expense to the parent widget
+  widget.onAddExpense(newExpense);
 
+  // Save to SharedPreferences
+  final prefs = await SharedPreferences.getInstance();
+  final savedData = prefs.getString('expenses');
+  List<dynamic> expenseList = savedData != null ? jsonDecode(savedData) : [];
+
+  // Check for duplicate expense
+  bool isDuplicate = expenseList.any((expense) => expense['id'] == newExpense.id);
+  if (!isDuplicate) {
     expenseList.add(newExpense.toJson());
 
+    // Save updated list to shared preferences
     await prefs.setString('expenses', jsonEncode(expenseList));
-
-    Navigator.pop(context);
+  } else {
+    print('Expense with the same ID already exists.');
   }
+
+  Navigator.pop(context);
+}
 
   @override
   void dispose() {
